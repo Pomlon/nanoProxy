@@ -29,13 +29,17 @@ func main() {
 	}
 
 	var endpointsMap = cnf.StringMap("endpoints")
+	var listenInt = cnf.String("listenInterface")
+	var listenPort = cnf.String("listenPort")
+	var listenURL = listenInt + ":" + listenPort
+	fmt.Println("Proxy listening on", listenURL)
 
 	reverseProxy := http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 		fmt.Printf("[reverse proxy server] received request at: %s\n", time.Now())
 
 		var path = strings.ReplaceAll(req.URL.Path, "/", "")
-		fmt.Println(path)
-
+		//fmt.Println(path)
+		var ruleMatch = false
 		for key, value := range endpointsMap {
 			if key == path {
 				var ruleDest, err = url.Parse(value)
@@ -48,7 +52,14 @@ func main() {
 				req.URL.Scheme = ruleDest.Scheme
 				req.URL.Path = ruleDest.Path
 
+				ruleMatch = true
+				break
 			}
+		}
+
+		if !ruleMatch {
+			io.Copy(rw, strings.NewReader("No matching rule found"))
+			return
 		}
 
 		// set req Host, URL and Request URI to forward a request to the origin server
@@ -73,5 +84,5 @@ func main() {
 		io.Copy(rw, originServerResponse.Body)
 	})
 
-	log.Fatal(http.ListenAndServe(":8080", reverseProxy))
+	log.Fatal(http.ListenAndServe(listenURL, reverseProxy))
 }
