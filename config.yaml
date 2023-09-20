@@ -1,0 +1,3 @@
+endpoints:
+  "test1": "https://sqlite.org/index.html"
+  "test2": "https://sqlite.org/copyright.html"
